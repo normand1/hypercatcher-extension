@@ -1,48 +1,55 @@
+:root {
+  --background-color: #141734;
+  --hc-orange: #fb743e;
+}
+
 @media (prefers-color-scheme: light) {
   a:hover {
     color: #61dafb;
   }
 }
 
+.logo {
+  display: block;
+  margin: 0 auto; /* Centers the image */
+  max-width: 100%; /* Ensures image responsiveness */
+  width: 100px; /* Adjust this value to change the size of the logo */
+  height: auto; /* Maintains aspect ratio */
+  padding-bottom: 0em; /* Reduce padding below the logo */
+}
+
 main {
+  background-color: var(--background-color);
   text-align: center;
   padding: 1em;
   margin: 0 auto;
 }
 
 h3 {
-  color: #61dafb;
+  margin-top: 0.5em; /* Reduce the top margin of the title */
+  color: var(--hc-orange);
   text-transform: uppercase;
   font-size: 1.5rem;
   font-weight: 200;
   line-height: 1.2rem;
-  margin: 2rem auto;
 }
 
-.calc {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 2rem;
+button.calc {
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--hc-orange); /* Thin solid border */
+  border-radius: 10px; /* Rounded edges */
+  background-color: transparent; /* Transparent background */
+  color: var(--hc-orange); /* Title text color */
+  cursor: pointer;
+  outline: none;
+  margin: 0.2rem;
+  transition: all 0.3s ease; /* Optional: for a smooth transition on hover */
+}
 
-  & > button {
-    font-size: 1rem;
-    padding: 0.5rem 1rem;
-    border: 1px solid #61dafb;
-    border-radius: 0.25rem;
-    background-color: transparent;
-    color: #61dafb;
-    cursor: pointer;
-    outline: none;
-
-    width: 3rem;
-    margin: 0 a;
-  }
-
-  & > label {
-    font-size: 1.5rem;
-    margin: 0 1rem;
-  }
+button.calc:hover {
+  background-color: var(--hc-orange); /* Change background on hover */
+  color: #ffffff; /* Change text color on hover */
 }
 
 a {
@@ -50,4 +57,38 @@ a {
   margin: 0.5rem;
   color: #cccccc;
   text-decoration: none;
+}
+
+.drop-zone {
+  border: 3px dotted #aaa; /* Dotted border */
+  padding: 20px; /* Inner spacing */
+  text-align: center; /* Center the text */
+  margin: 10px 0; /* Margin for spacing */
+  height: 50px; /* Set a fixed height */
+  display: flex; /* Flexbox for centering content */
+  align-items: center; /* Vertically center content */
+  justify-content: center; /* Horizontally center content */
+  cursor: pointer; /* Pointer cursor on hover */
+  border-radius: 10px; /* Rounded corners */
+}
+
+@keyframes pulseBorder {
+  0% {
+    border-color: #ff7f50; /* Coral */
+    box-shadow: 0 0 5px #ff7f50;
+  }
+  50% {
+    border-color: #fb743e; /* Your custom HC orange */
+    box-shadow: 0 0 15px #fb743e;
+  }
+  100% {
+    border-color: #ff4500; /* Orange Red */
+    box-shadow: 0 0 5px #ff4500;
+  }
+}
+
+
+.drop-zone.active {
+  animation: pulseBorder 1s infinite;
+  /* Other styles */
 }

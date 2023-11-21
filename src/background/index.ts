@@ -1,7 +1,5 @@
-console.log('background is running')
+console.log('hypercatcher extension background script is running')
 
 chrome.runtime.onMessage.addListener((request) => {
-  if (request.type === 'COUNT') {
-    console.log('background has received a message from popup, and count is ', request?.count)
-  }
+  console.log('hypercatcher extension background received a request', request)
 })

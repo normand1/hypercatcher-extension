@@ -1,16 +1,15 @@
 {
   "name": "hypercatcher-extension",
-  "displayName": "hypercatcher-extension",
-  "version": "0.0.0",
+  "displayName": "Hypercatcher Extension",
+  "version": "0.0.1",
   "author": "David Norman",
   "description": "",
   "type": "module",
   "license": "MIT",
   "keywords": [
-    "chrome-extension",
-    "react",
-    "vite",
-    "create-chrome-ext"
+    "hypercatcher",
+    "podcast",
+    "chapters"
   ],
   "engines": {
     "node": ">=14.18.0"
@@ -19,7 +18,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "fmt": "prettier --write '**/*.{tsx,ts,json,css,scss,md}'"
+    "fmt": "prettier --write '**/*.{tsx,ts,json,css,scss,md}'",
+    "watch": "./watch-and-build.sh"
   },
   "dependencies": {
     "react": "^18.2.0",

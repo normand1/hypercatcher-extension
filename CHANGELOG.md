@@ -13,3 +13,9 @@ Summary
 
 - feat: initial
 - feat: generator by ![create-chrome-ext](https://github.com/guocaoyi/create-chrome-ext)
+
+
+## 0.0.1 [2023.11.21]
+
+- feat: basic initial features and open source repo push
+- feat: support chapter creation in: 'rssblue.com', 'podcasters.spotify.com', 'buzzsprout.com', 'publish.blubrry.com'

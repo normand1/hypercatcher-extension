@@ -1,0 +1,10 @@
+{
+    "triggers": [
+      {
+        "name": "build-on-src-change",
+        "expression": ["anyof", ["suffix", "js"], ["suffix", "css"], ["suffix", "html"], ["suffix", "tsx"], ["suffix", "tsx"]],
+        "append_files": false,
+        "command": ["npm", "run", "build"]
+      }
+    ]
+  }
