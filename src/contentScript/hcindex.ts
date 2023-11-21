@@ -3,23 +3,18 @@ import { SupportedAction } from '../hcGlobals';
 console.info('hyperactcher contentScript is running')
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
-  console.log('request.action', request.action);
-  console.log('request.action === SupportedAction.InsertChapters', request.action === SupportedAction.InsertChapters);
   if (request.action === SupportedAction.InsertText) {
     // Call a function to insert text
-    console.log('request.fileContent', request.fileContent);
     const formattedChapterText = formatChapters(request.fileContent);
     insertText(formattedChapterText);
   } 
   else if (request.action === SupportedAction.UploadFile) {
-    console.log('request.fileContent', request.fileContent);
     const fileContent = request.fileContent;
     const blob = new Blob([fileContent], { type: 'application/json' });
     const dataTransfer = new DataTransfer();
     dataTransfer.items.add(new File([blob], "uploaded.json"));
     const inputElement = document.getElementById('chapters-json-input') as any;
     if (inputElement) {
-      console.log('inputElement', inputElement);
       inputElement.files = dataTransfer.files;
       inputElement.dispatchEvent(new Event('change', { 'bubbles': true }));
     }
@@ -30,7 +25,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     insertChapterTextToTable(request.fileContent);
   } else if (request.action === SupportedAction.
     BlUploadFile) {
-      console.log('request.fileContent', request.fileContent);
       const fileContent = request.fileContent;
       blUploadFile(fileContent);
   }
@@ -45,7 +39,6 @@ dataTransfer.items.add(new File([blob], "uploaded.json"));
 const inputElement = document.getElementById('chapters-upload') as HTMLInputElement;
 
 if (inputElement) {
-  console.log('inputElement', inputElement);
   inputElement.files = dataTransfer.files;
   
   // Trigger the 'change' event
@@ -156,7 +149,7 @@ function formatChapters(jsonData: any) {
   // Create formatted chapter lines
   const formattedChapters = data.chapters.map((chapter: any) => {
       const timestamp = formatTime(chapter.startTime);
-      return `${timestamp}-${chapter.title}`;
+      return `(${timestamp}) ${chapter.title}`;
   });
 
   // Join chapters with new lines
