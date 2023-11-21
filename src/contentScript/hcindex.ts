@@ -100,7 +100,8 @@ async function addChapter(chapter:any) {
 
   if (chapter.img) {
     try {
-      const imageFile = await urlToFile(chapter.img, 'chapterImage.jpg', 'image/jpeg');
+      const mimeType = getMimeType(chapter.img);
+      const imageFile = await urlToFile(chapter.img, 'chapterImage', mimeType);
       const imageInput = form['chapter[image]'];
       const dataTransfer = new DataTransfer();
       dataTransfer.items.add(imageFile);
@@ -109,7 +110,7 @@ async function addChapter(chapter:any) {
     } catch (error) {
       console.error('Error processing image:', error);
     }
-  }
+  }  
 
   // Set the values for the form fields
   form['chapter[start_time_string]'].value = startTime;
@@ -176,4 +177,20 @@ function triggerEvent(element:any, eventName:any) {
 
 function delay(ms:number) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function getMimeType(url: string): string {
+  const extension = url.split('.').pop()?.toLowerCase();
+  switch (extension) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'png':
+      return 'image/png';
+    case 'gif':
+      return 'image/gif';
+    // Add more cases as needed for different image types
+    default:
+      return 'application/octet-stream'; // Default MIME type
+  }
 }

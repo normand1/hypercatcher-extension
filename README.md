@@ -20,6 +20,9 @@ This list will grow, but is limited by the hosting platform's chapter creation t
 - Navigate to your supported podcasting host of choice's chapter upload page for your podcast episode
 - Click the "Update Chapters" button in the extension to insert your podcast chapters.
 
+![Demo GIF](./usage-example.gif)
+
+
 ## Installing for use
 (Google Chrome store link in progress)
 
