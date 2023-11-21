@@ -1,4 +1,21 @@
 {
-  "projectName": "Hypercatcher Extension",
-  "projectOwner": "@normand1"
+  "projectName": "hypercatcher-extension",
+  "projectOwner": "normand1",
+  "files": [
+    "README.md"
+  ],
+  "commitType": "docs",
+  "commitConvention": "angular",
+  "contributorsPerLine": 7,
+  "contributors": [
+    {
+      "login": "normand1",
+      "name": "David Norman",
+      "avatar_url": "https://avatars.githubusercontent.com/u/1393261?v=4",
+      "profile": "http://www.davidwnorman.com",
+      "contributions": [
+        "code"
+      ]
+    }
+  ]
 }
