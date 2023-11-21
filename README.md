@@ -62,3 +62,4 @@ Now, the content of `build` folder will be the extension ready to be submitted t
 ## Special Thanks To:
 ---
 [create-chrome-ext](https://github.com/guocaoyi/create-chrome-ext)
+[Podcasting 2.0](https://github.com/Podcastindex-org/podcast-namespace)
