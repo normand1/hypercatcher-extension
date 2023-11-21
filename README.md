@@ -1,5 +1,7 @@
 # Hypercatcher Extension
 
+[![All Contributors](https://img.shields.io/github/all-contributors/normand1/hypercatcher-extension?color=ee8449&style=flat-square)](#contributors)
+
 The Hypercatcher Extension unifies the chapter creation experience across all major podcasting platforms. Create your podcast chapters using any tool like [studio.hypercatcher.com](https://studio.hypercatcher.com/) to create your chapters and drop them into any supported podcast hosting platform
 
 ## Supported Podcast Hosts
@@ -60,6 +62,16 @@ Now, the content of `build` folder will be the extension ready to be submitted t
 
 
 ## Special Thanks To:
----
 - [create-chrome-ext](https://github.com/guocaoyi/create-chrome-ext)
 - [Podcasting 2.0](https://github.com/Podcastindex-org/podcast-namespace)
+
+## Contributors
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
