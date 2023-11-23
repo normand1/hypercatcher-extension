@@ -1,4 +1,4 @@
-# Hypercatcher Extension
+# Hypercatcher Chapter Sync Extension
 
 [![All Contributors](https://img.shields.io/github/all-contributors/normand1/hypercatcher-extension?color=ee8449&style=flat-square)](#contributors)
 
