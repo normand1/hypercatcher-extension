@@ -114,7 +114,7 @@ export const Popup = () => {
   return (
     <main>
       <img src="img/warp-standalone-logo-hypercatcher.png" alt="HyperCatcher Logo" className="logo"/>
-      <h3>HyperCatcher</h3>
+      <h3>Chapter Sync</h3>
       {isSupportedSite && (
     <div>
       <span>✅ Supported Site <br/> </span>
