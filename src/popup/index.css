@@ -26,3 +26,36 @@ body {
   min-width: 20rem;
   margin: 0;
 }
+
+.export-btn {
+  /* Your styling here */
+  padding: 0.5rem 1rem;
+  margin: 0.2rem;
+  border: 1px solid var(--hc-orange);
+  background-color: transparent;
+  color: var(--hc-orange);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.export-btn:hover {
+  background-color: var(--hc-orange);
+  color: #ffffff;
+}
+
+.delete-podcast-btn {
+  /* Your styling here */
+  padding: 0.5rem 1rem;
+  margin: 0.2rem;
+  border: 1px solid red; /* Example styling */
+  background-color: transparent;
+  color: red;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.delete-podcast-btn:hover {
+  background-color: red;
+  color: #ffffff;
+}
+
