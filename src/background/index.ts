@@ -1,18 +1,13 @@
 console.log('hypercatcher extension background script is running')
 import { Episode, Podcast, PodcastChapter } from '../models/podcastCreateModels';
 
-interface LastTabUrls {
-  [key: string]: string | undefined;
-}
-
 let podcasts:any = [];
 let thisCurrentPodcastId:any = null;
 let thisCurrentEpisodeId:any = null;
 let autoChapterMode = false;
-let lastTabUrls: LastTabUrls = {};
-let ignoreUrlsList = ['chrome://newtab/'];
+let lastTabUrls = new Set<string>();
+let ignoreUrlsList = ['chrome://newtab/', 'chrome://extensions/', 'chrome://settings/', 'chrome://bookmarks/', 'chrome://downloads/'];
 let recordingStartTime = 0;
-let lastChapterStartTime = 0;
 
 
 chrome.runtime.onMessage.addListener((request) => {
@@ -24,7 +19,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
     console.log('autoChapterMode changed', changes.autoChapterMode.newValue);
     autoChapterMode = changes.autoChapterMode.newValue;
     updateIcon(autoChapterMode);
-    lastTabUrls = {};
+    lastTabUrls = new Set<string>();
         // Start or reset the timer based on autoChapterMode
         if (autoChapterMode) {
           recordingStartTime = Date.now() / 1000; // Start the timer
@@ -43,7 +38,7 @@ function updateIcon(isRecording: boolean) {
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   // Check if the tab's status is 'complete' and the URL is different from the last one we saw
   console.log('lastTabUrls', JSON.stringify(lastTabUrls));
-  if (changeInfo.status === 'complete' && tab.url && lastTabUrls[tab.url] !== tab.url && !ignoreUrlsList.includes(tab.url)) {
+  if (changeInfo.status === 'complete' && tab.url && !lastTabUrls.has(tab.url) && !ignoreUrlsList.includes(tab.url)) {
     // Logic to create a new chapter with the tab's URL
     if (autoChapterMode) {
       addNewChapter(tab.url, 'url');
@@ -99,33 +94,36 @@ function addNewChapter(selectedTextOrUrl: string, to: string = 'title') {
     .find((podcast: Podcast) => podcast.id === thisCurrentPodcastId)
     ?.episodes.find((episode: Episode) => episode.id === thisCurrentEpisodeId);
 
-  lastTabUrls = currentEpisode?.chapters.reduce((acc: LastTabUrls, chapter: PodcastChapter) => {
-    acc[chapter.url] = chapter.url;
+  lastTabUrls = currentEpisode?.chapters.reduce((acc: Set<string>, chapter: PodcastChapter) => {
+    acc.add(chapter.url);
     return acc;
-  }) || {};
+  }, new Set<string>() ) || new Set<string>();
 
   if (selectedTextOrUrl in lastTabUrls) {
     console.log('URL already exists in lastTabUrls, skipping chapter creation.');
     return;
   }
-  
+
+  const currentTime = Math.round(Date.now() / 1000);
+
   let lastChapterStartTime = currentEpisode?.chapters.reduce((max: number, chapter: PodcastChapter) => Math.max(max, chapter.start), 0) || 0;
-  let startTime = 0;
-
-    const currentTime = Math.round(Date.now() / 1000);
-    if ((currentTime - recordingStartTime) > lastChapterStartTime) {
-      startTime = Math.round((currentTime - recordingStartTime));
-    } else {
-      startTime = (Math.round(currentTime / 1000) - recordingStartTime);
-    }
-
-    const chapterToAdd = {
-      id: Date.now().toString(),
-      title: to == 'title' ? selectedTextOrUrl : '',
-      start: startTime,
-      url: to == 'url' ? selectedTextOrUrl : '',
-      img: to === 'img' ? selectedTextOrUrl : '',
-    };
+  console.log('lastChapterStartTime:', lastChapterStartTime);
+  
+  // Calculate the start time as the difference between current time and recording start time
+  let startTime = currentTime - recordingStartTime;
+  
+  // Adjust startTime based on the last chapter's start time if necessary
+  if (lastChapterStartTime > 0 && startTime < lastChapterStartTime) {
+    startTime = lastChapterStartTime;
+  }
+  
+  const chapterToAdd = {
+    id: Date.now().toString(),
+    title: to === 'title' ? selectedTextOrUrl : '',
+    start: Math.round(startTime),
+    url: to === 'url' ? selectedTextOrUrl : '',
+    img: to === 'img' ? selectedTextOrUrl : '',
+  };  
 
     const updatedPodcasts = podcasts.map((podcast: any) => {
       if (podcast.id === thisCurrentPodcastId) {
@@ -155,7 +153,7 @@ function addNewChapter(selectedTextOrUrl: string, to: string = 'title') {
     });
 
     console.log('sent notificaiton');
-
+    console.log('updatedPodcasts', JSON.stringify(updatedPodcasts));
     chrome.storage.sync.set({ podcasts: updatedPodcasts }, () => {
       console.log('Podcasts with new chapter updated in Chrome Storage.');
     });
