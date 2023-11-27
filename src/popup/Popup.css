@@ -13,7 +13,7 @@
   display: block;
   margin: 0 auto; /* Centers the image */
   max-width: 100%; /* Ensures image responsiveness */
-  width: 100px; /* Adjust this value to change the size of the logo */
+  width: 50px; /* Adjust this value to change the size of the logo */
   height: auto; /* Maintains aspect ratio */
   padding-bottom: 0em; /* Reduce padding below the logo */
 }
@@ -23,6 +23,9 @@ main {
   text-align: center;
   padding: 1em;
   margin: 0 auto;
+  width: 300px; /* Fixed width */
+  height: 500px; /* Fixed height */
+  overflow: auto; 
 }
 
 h3 {
@@ -72,6 +75,33 @@ a {
   border-radius: 10px; /* Rounded corners */
 }
 
+.podcasts-list-container {
+  padding-top: 2rem; /* Adjust this value based on your layout */
+}
+
+.podcast-item {
+  padding: 0.5rem 1rem; /* Add padding for better touch area */
+  margin: 0.5rem 0; /* Add some margin between items */
+  border: 1px solid var(--hc-orange); /* Border to make it visually distinct */
+  border-radius: 5px; /* Slight rounding of corners */
+  background-color: transparent;
+  color: var(--hc-orange); /* Text color */
+  cursor: pointer; /* Change cursor to indicate clickability */
+  transition: all 0.3s ease; /* Smooth transition for hover effect */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+}
+
+.podcast-item:hover {
+  background-color: var(--hc-orange); /* Change background on hover */
+  color: #ffffff; /* Change text color on hover */
+}
+
+/* ... any other styles ... */
+
+
 @keyframes pulseBorder {
   0% {
     border-color: #ff7f50; /* Coral */
@@ -91,4 +121,104 @@ a {
 .drop-zone.active {
   animation: pulseBorder 1s infinite;
   /* Other styles */
+}
+
+.popup-container {
+  position: relative;
+}
+
+.add-item-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 1rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--hc-orange); /* Thin solid border */
+  border-radius: 10px; /* Rounded edges */
+  background-color: transparent; /* Transparent background */
+  color: var(--hc-orange); /* Title text color */
+  cursor: pointer;
+  outline: none;
+  margin: 0.2rem;
+  transition: all 0.3s ease; /* Optional: for a smooth transition on hover */
+}
+
+.back-button {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  border: none;
+  background: none;
+  color: var(--hc-orange); /* or any color of your choice */
+  cursor: pointer;
+  /* Additional styling as needed */
+}
+
+/* Updated class for tab buttons with square outline */
+.tab-button {
+  width: 50%;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  border: 1px solid var(--hc-orange);
+  border-radius: 0; /* Square outline */
+  background-color: transparent;
+  color: var(--hc-orange);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+  background-color: var(--hc-orange);
+  color: #ffffff;
+}
+
+/* New class for the active tab */
+.tab-button-active {
+  background-color: var(--hc-orange); /* Different background for active tab */
+  color: #ffffff; /* Different text color for active tab */
+  /* Other styles to make it distinct */
+}
+
+.tab-buttons {
+  display: flex;
+  justify-content: stretch;
+  margin: 0;
+  padding: 0;
+}
+
+/* Style for the new podcast input field */
+.new-podcast-input {
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+  border: 1px solid var(--hc-orange);
+  border-radius: 5px;
+  width: 80%; /* Adjust width as needed */
+}
+
+/* Style for the save button */
+.save-podcast-btn {
+  padding: 0.5rem 1rem;
+  margin: 0.5rem;
+  border: 1px solid var(--hc-orange);
+  border-radius: 5px;
+  background-color: transparent;
+  color: var(--hc-orange);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.save-podcast-btn:hover {
+  background-color: var(--hc-orange);
+  color: #ffffff;
+}
+
+.save-podcast-btn-container {
+  position: relative; /* or another positioning strategy */
+  padding-top: 3rem; /* Add space for the add-item button */
+}
+
+.chapters-list-container {
+  padding-bottom: 3rem; /* Adjust as needed to create space for the button */
 }
