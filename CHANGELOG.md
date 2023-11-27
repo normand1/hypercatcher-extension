@@ -19,3 +19,11 @@ Summary
 
 - feat: basic initial features and open source repo push
 - feat: support chapter creation in: 'rssblue.com', 'podcasters.spotify.com', 'buzzsprout.com', 'publish.blubrry.com'
+
+## 0.0.2 [2023.11.27]
+
+- feat: Add Chapter Create Tabs
+- feat: Create new podcast chapters with manually
+- feat: Start record mode to start capturing newly loaded urls as chapters
+- feat: Right click on an image to save the image url as a new chapter
+- feat: Right click on any text to save it as a new chapter title
