@@ -7,7 +7,7 @@ export type Podcast = {
 export type Episode = {
     id: string;
     title: string;
-    chapters: Array<PodcastChapter | null>;
+    chapters: Array<PodcastChapter>;
 };
 
 export type PodcastChapter = {

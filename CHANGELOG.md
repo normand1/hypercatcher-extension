@@ -27,3 +27,11 @@ Summary
 - feat: Start record mode to start capturing newly loaded urls as chapters
 - feat: Right click on an image to save the image url as a new chapter
 - feat: Right click on any text to save it as a new chapter title
+
+## 0.0.3 [2023.11.29]
+
+- bug: start time bug fix
+
+## 0.0.4 [2023.12.01]
+
+- bug: Another start time bug fix

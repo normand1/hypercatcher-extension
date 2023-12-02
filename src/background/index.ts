@@ -1,14 +1,8 @@
 console.log('hypercatcher extension background script is running')
 import { Episode, Podcast, PodcastChapter } from '../models/podcastCreateModels';
-
-let podcasts:any = [];
-let thisCurrentPodcastId:any = null;
-let thisCurrentEpisodeId:any = null;
 let autoChapterMode = false;
 let lastTabUrls = new Set<string>();
 let ignoreUrlsList = ['chrome://newtab/', 'chrome://extensions/', 'chrome://settings/', 'chrome://bookmarks/', 'chrome://downloads/'];
-let recordingStartTime = 0;
-
 
 chrome.runtime.onMessage.addListener((request) => {
   console.log('hypercatcher extension background received a request', request)
@@ -20,12 +14,10 @@ chrome.storage.onChanged.addListener((changes, area) => {
     autoChapterMode = changes.autoChapterMode.newValue;
     updateIcon(autoChapterMode);
     lastTabUrls = new Set<string>();
-        // Start or reset the timer based on autoChapterMode
-        if (autoChapterMode) {
-          recordingStartTime = Date.now() / 1000; // Start the timer
-        } else {
-          recordingStartTime = 0; // Reset the timer
-        }    
+    const recordingStartTime =  Math.round(Date.now() / 1000);
+    chrome.storage.sync.set({ recordingStartTime: recordingStartTime }, () => {
+      console.log('updated recordingStartTime:', recordingStartTime);
+    });
   }
 });
 
@@ -33,7 +25,6 @@ function updateIcon(isRecording: boolean) {
   const iconPath = isRecording ? 'img/logo-48-recording.png' : 'img/logo-48.png';
   chrome.action.setIcon({ path: iconPath }); // Use 'chrome.browserAction.setIcon' for Manifest V2
 }
-
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   // Check if the tab's status is 'complete' and the URL is different from the last one we saw
@@ -55,7 +46,7 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: "createPodcastChapterUrl",
     title: "Chapter URL from Selection",
-    contexts: ["selection"] // This makes it appear only when text is selected
+    contexts: ["selection", "link", "video", "audio", "page"] // This makes it appear only when these things are selected
   });
   chrome.contextMenus.create({
     id: "createPodcastChapterImage",
@@ -69,35 +60,70 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "createPodcastChapterTitle" && info.selectionText) {
     addNewChapter(info.selectionText, 'title');
   }
-  else if (info.menuItemId === "createPodcastChapterUrl" && info.selectionText) {
-    addNewChapter(info.selectionText, 'url');
+  else if (info.menuItemId === "createPodcastChapterUrl") {
+    console.log('info', JSON.stringify(info));
+    addNewChapter(info?.linkUrl ?? info?.srcUrl ?? 'could not capture url', 'url');
   }
   else if (info.menuItemId === "createPodcastChapterImage" && info.srcUrl) {
     addNewChapter(info.srcUrl, 'img');
   }
 });
+
+function getCurrentEpisode(): Promise<any | null> {
+  return new Promise((resolve, reject) => {
+    chrome.storage.sync.get(['podcasts', 'currentPodcastId', 'currentEpisodeId'], (result) => {
+      if (!result) {
+        return reject(new Error('No result found'));
+      }
+
+      let podcasts, thisCurrentPodcastId: any, thisCurrentEpisodeId: any;
+
+      if (result.podcasts) {
+        podcasts = result.podcasts;
+        console.log('podcasts', podcasts);
+      }
+      if (result.currentPodcastId) {
+        thisCurrentPodcastId = result.currentPodcastId;
+        console.log('currentPodcastId', thisCurrentPodcastId);
+      }
+      if (result.currentEpisodeId) {
+        thisCurrentEpisodeId = result.currentEpisodeId;
+        console.log('currentEpisodeId', thisCurrentEpisodeId);
+      }
+
+      // Find the current episode
+      const currentEpisode = podcasts?.find((podcast:any) => podcast.id === thisCurrentPodcastId)?.episodes.find((episode:any) => episode.id === thisCurrentEpisodeId);
+      console.log('currentEpisode', currentEpisode);
+
+      resolve({currentEpisode, podcasts, thisCurrentPodcastId, thisCurrentEpisodeId} || null);
+    });
+  });
+}
+
+async function getRecordingStartTime(): Promise<number | null> {
+  return new Promise((resolve, reject) => {
+    chrome.storage.sync.get(['recordingStartTime'], (result) => {
+      if (chrome.runtime.lastError) {
+        return reject(chrome.runtime.lastError);
+      }
+
+      resolve(result.recordingStartTime || null);
+    });
+  });
+}
   
-function addNewChapter(selectedTextOrUrl: string, to: string = 'title') {
-  chrome.storage.sync.get(['podcasts', 'currentPodcastId', 'currentEpisodeId'], (result) => {
-    if (result.podcasts) {
-      podcasts = result.podcasts;
-    }
-    if (result.currentPodcastId) {
-      thisCurrentPodcastId = result.currentPodcastId;
-    }
-    if (result.currentEpisodeId) {
-      thisCurrentEpisodeId = result.currentEpisodeId;
-    }
+async function addNewChapter(selectedTextOrUrl: string, to: string = 'title') {
 
-    // Find the current episode and its latest chapter start time
-    const currentEpisode = podcasts
-    .find((podcast: Podcast) => podcast.id === thisCurrentPodcastId)
-    ?.episodes.find((episode: Episode) => episode.id === thisCurrentEpisodeId);
-
-  lastTabUrls = currentEpisode?.chapters.reduce((acc: Set<string>, chapter: PodcastChapter) => {
-    acc.add(chapter.url);
+  const {currentEpisode, podcasts, thisCurrentPodcastId, thisCurrentEpisodeId} = await getCurrentEpisode();
+  if (!currentEpisode) {
+    console.log('No current episode found, skipping chapter creation.');
+    return;
+  }
+  lastTabUrls = currentEpisode!.chapters.reduce((acc: Set<string>, chapter: PodcastChapter) => {
+      acc.add(chapter.url);
     return acc;
-  }, new Set<string>() ) || new Set<string>();
+  }, new Set<string>());
+
 
   if (selectedTextOrUrl in lastTabUrls) {
     console.log('URL already exists in lastTabUrls, skipping chapter creation.');
@@ -105,17 +131,21 @@ function addNewChapter(selectedTextOrUrl: string, to: string = 'title') {
   }
 
   const currentTime = Math.round(Date.now() / 1000);
+  let lastChapterStartTime = 0;
+  // console.log('episodeChapters', JSON.stringify(currentEpisode));
+  lastChapterStartTime = currentEpisode.chapters!.reduce((max: number, chapter: PodcastChapter) => Math.max(max, chapter.start), 0) || 0;
+  
+ const recordingStartTime = await getRecordingStartTime() ?? 0;
 
-  let lastChapterStartTime = currentEpisode?.chapters.reduce((max: number, chapter: PodcastChapter) => Math.max(max, chapter.start), 0) || 0;
+  console.log('--------------');
+  console.log('currentTime:', currentTime);
+  console.log('recordingStartTime:', recordingStartTime);
+  console.log('(currentTime - recordingStartTime) = ', (currentTime - recordingStartTime));
   console.log('lastChapterStartTime:', lastChapterStartTime);
   
   // Calculate the start time as the difference between current time and recording start time
-  let startTime = currentTime - recordingStartTime;
-  
-  // Adjust startTime based on the last chapter's start time if necessary
-  if (lastChapterStartTime > 0 && startTime < lastChapterStartTime) {
-    startTime = lastChapterStartTime;
-  }
+  let startTime = (currentTime - recordingStartTime);
+  console.log('startTime:', startTime);
   
   const chapterToAdd = {
     id: Date.now().toString(),
@@ -125,7 +155,7 @@ function addNewChapter(selectedTextOrUrl: string, to: string = 'title') {
     img: to === 'img' ? selectedTextOrUrl : '',
   };  
 
-    const updatedPodcasts = podcasts.map((podcast: any) => {
+  const updatedPodcasts = podcasts.map((podcast: any) => {
       if (podcast.id === thisCurrentPodcastId) {
         return {
           ...podcast,
@@ -158,6 +188,4 @@ function addNewChapter(selectedTextOrUrl: string, to: string = 'title') {
       console.log('Podcasts with new chapter updated in Chrome Storage.');
     });
   }
-  );
-}
 
