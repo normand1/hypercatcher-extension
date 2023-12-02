@@ -15,7 +15,6 @@ chrome.storage.onChanged.addListener((changes, area) => {
     updateIcon(autoChapterMode);
     lastTabUrls = new Set<string>();
     const recordingStartTime =  Math.round(Date.now() / 1000);
-    //TODO: handle recording start time updates when swithcing episodes
     chrome.storage.sync.set({ recordingStartTime: recordingStartTime }, () => {
       console.log('updated recordingStartTime:', recordingStartTime);
     });
