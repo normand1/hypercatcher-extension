@@ -76,7 +76,7 @@ a {
 }
 
 .podcasts-list-container {
-  padding-top: 2rem; /* Adjust this value based on your layout */
+  padding-top: 1rem; /* Adjust this value based on your layout */
 }
 
 .podcast-item {
@@ -221,4 +221,22 @@ a {
 
 .chapters-list-container {
   padding-bottom: 3rem; /* Adjust as needed to create space for the button */
+}
+
+.chapter-stopwatch {
+  font-size: 1rem;
+  font-weight: bold;
+  margin: 3rem 0 0.5rem 0;
+  padding: 0.5rem 1rem;
+  background-color: transparent;
+  border: 1px solid var(--hc-orange);
+  border-radius: 10px;
+  color: var(--hc-orange);
+  transition: all 0.3s ease;
+  order: -1; /* This will move it to the top of the flex container */
+}
+
+.chapter-stopwatch:hover {
+  background-color: var(--hc-orange);
+  color: #ffffff;
 }

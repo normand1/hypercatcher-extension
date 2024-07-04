@@ -1,23 +1,56 @@
 console.log('hypercatcher extension background script is running')
 import { Episode, Podcast, PodcastChapter } from '../models/podcastCreateModels';
 let autoChapterMode = false;
-let lastTabUrls = new Set<string>();
 let ignoreUrlsList = ['chrome://newtab/', 'chrome://extensions/', 'chrome://settings/', 'chrome://bookmarks/', 'chrome://downloads/'];
+let stopwatchInterval: number | undefined;
+let currentStopwatchTime: number = 0;
+
+function updateStopwatch() {
+  chrome.storage.sync.get(['autoChapterMode', 'recordingStartTime', 'currentStopwatchTime'], (result) => {
+    console.log('updateStopwatch - current storage state:', result);
+    if (result.autoChapterMode) {
+      const now = Math.round(Date.now() / 1000);
+      currentStopwatchTime = (result.currentStopwatchTime || 0) + (now - (result.recordingStartTime || now));
+      console.log('updateStopwatch - new currentStopwatchTime:', currentStopwatchTime);
+      chrome.storage.sync.set({ currentStopwatchTime, recordingStartTime: now });
+    }
+  });
+}
 
 chrome.runtime.onMessage.addListener((request) => {
   console.log('hypercatcher extension background received a request', request)
 })
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'sync' && changes.autoChapterMode?.newValue !== undefined) {
-    console.log('autoChapterMode changed', changes.autoChapterMode.newValue);
-    autoChapterMode = changes.autoChapterMode.newValue;
-    updateIcon(autoChapterMode);
-    lastTabUrls = new Set<string>();
-    const recordingStartTime =  Math.round(Date.now() / 1000);
-    chrome.storage.sync.set({ recordingStartTime: recordingStartTime }, () => {
-      console.log('updated recordingStartTime:', recordingStartTime);
-    });
+  if (area === 'sync') {
+    console.log('Storage changed:', changes);
+    if (changes.autoChapterMode?.newValue !== undefined) {
+      console.log('autoChapterMode changed', changes.autoChapterMode.newValue);
+      autoChapterMode = changes.autoChapterMode.newValue;
+      updateIcon(autoChapterMode);
+      
+      if (autoChapterMode) {
+        console.log('Starting stopwatch');
+        if (!stopwatchInterval) {
+          updateStopwatch(); // Update immediately when starting
+          stopwatchInterval = self.setInterval(updateStopwatch, 1000);
+        }
+      } else {
+        console.log('Stopping stopwatch with stopwatch interval', stopwatchInterval);
+        if (stopwatchInterval) {
+          self.clearInterval(stopwatchInterval);
+          stopwatchInterval = undefined;
+        }
+      }
+    }
+    
+    if (autoChapterMode && changes.currentStopwatchTime) {
+      console.log('currentStopwatchTime updated:', changes.currentStopwatchTime.newValue);
+    }
+    
+    if (autoChapterMode && changes.recordingStartTime) {
+      console.log('recordingStartTime updated:', changes.recordingStartTime.newValue);
+    }
   }
 });
 
@@ -27,10 +60,7 @@ function updateIcon(isRecording: boolean) {
 }
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  // Check if the tab's status is 'complete' and the URL is different from the last one we saw
-  console.log('lastTabUrls', JSON.stringify(lastTabUrls));
-  if (changeInfo.status === 'complete' && tab.url && !lastTabUrls.has(tab.url) && !ignoreUrlsList.includes(tab.url)) {
-    // Logic to create a new chapter with the tab's URL
+  if (changeInfo.status === 'complete' && tab.url && !ignoreUrlsList.includes(tab.url)) {
     if (autoChapterMode) {
       addNewChapter(tab.url, 'url');
     }
@@ -99,62 +129,25 @@ function getCurrentEpisode(): Promise<any | null> {
     });
   });
 }
-
-async function getRecordingStartTime(): Promise<number | null> {
-  return new Promise((resolve, reject) => {
-    chrome.storage.sync.get(['recordingStartTime'], (result) => {
-      if (chrome.runtime.lastError) {
-        return reject(chrome.runtime.lastError);
-      }
-
-      resolve(result.recordingStartTime || null);
-    });
-  });
-}
   
 async function addNewChapter(selectedTextOrUrl: string, to: string = 'title') {
-
   const {currentEpisode, podcasts, thisCurrentPodcastId, thisCurrentEpisodeId} = await getCurrentEpisode();
   if (!currentEpisode) {
     console.log('No current episode found, skipping chapter creation.');
     return;
   }
-  lastTabUrls = currentEpisode!.chapters.reduce((acc: Set<string>, chapter: PodcastChapter) => {
-      acc.add(chapter.url);
-    return acc;
-  }, new Set<string>());
 
+  // Get the current stopwatch time from Chrome storage
+  const result = await chrome.storage.sync.get(['currentStopwatchTime']);
+  const stopwatchTime = result.currentStopwatchTime || 0;
 
-  if (selectedTextOrUrl in lastTabUrls) {
-    console.log('URL already exists in lastTabUrls, skipping chapter creation.');
-    return;
-  }
-
-  const currentTime = Math.round(Date.now() / 1000);
-  let lastChapterStartTime = 0;
-  // console.log('episodeChapters', JSON.stringify(currentEpisode));
-  lastChapterStartTime = currentEpisode.chapters!.reduce((max: number, chapter: PodcastChapter) => Math.max(max, chapter.start), 0) || 0;
-  
- const recordingStartTime = await getRecordingStartTime() ?? 0;
-
-  console.log('--------------');
-  console.log('currentTime:', currentTime);
-  console.log('recordingStartTime:', recordingStartTime);
-  console.log('(currentTime - recordingStartTime) = ', (currentTime - recordingStartTime));
-  console.log('lastChapterStartTime:', lastChapterStartTime);
-  
-  // Calculate the start time as the difference between current time and recording start time
-  let startTime = (currentTime - recordingStartTime);
-  console.log('startTime:', startTime);
-  
   const chapterToAdd = {
     id: Date.now().toString(),
     title: to === 'title' ? selectedTextOrUrl : '',
-    start: Math.round(startTime),
+    start: Math.round(stopwatchTime), // Use the stopwatch time instead of calculating
     url: to === 'url' ? selectedTextOrUrl : '',
     img: to === 'img' ? selectedTextOrUrl : '',
   };  
-
   const updatedPodcasts = podcasts.map((podcast: any) => {
       if (podcast.id === thisCurrentPodcastId) {
         return {
@@ -185,7 +178,23 @@ async function addNewChapter(selectedTextOrUrl: string, to: string = 'title') {
     console.log('sent notificaiton');
     console.log('updatedPodcasts', JSON.stringify(updatedPodcasts));
     chrome.storage.sync.set({ podcasts: updatedPodcasts }, () => {
-      console.log('Podcasts with new chapter updated in Chrome Storage.');
+      console.log('Podcasts with new chapter updated in Chrome Storage in background.');
     });
   }
 
+
+function initializeStopwatch() {
+  chrome.storage.sync.get(['autoChapterMode', 'recordingStartTime'], (result) => {
+    if (result.autoChapterMode) {
+      updateStopwatch();
+      if (!stopwatchInterval) {
+        stopwatchInterval = window.setInterval(updateStopwatch, 1000);
+      }
+    }
+  });
+}
+  
+  // Call initializeStopwatch when the extension starts
+  initializeStopwatch();
+  
+  
