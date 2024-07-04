@@ -4,6 +4,10 @@
 
 The Hypercatcher Extension unifies the chapter creation experience across all major podcasting platforms. Create your podcast chapters using any tool like [studio.hypercatcher.com](https://studio.hypercatcher.com/) to create your chapters and drop them into any supported podcast hosting platform
 
+## Install From the Chrome Web Store 
+
+[HyperCatcher ChapterSync Tool Web Store](https://chromewebstore.google.com/detail/hypercatcher-chaptersync/lcjhehpbkpanacfpkblfgpphpdgkpjlc?hl=en-US&utm_source=ext_sidebar)
+
 ## Supported Podcast Hosts
 
 This list will grow, but is limited by the hosting platform's chapter creation tools and how easy they are to automate. Please open an issue to request podcast host support or open a PR to add it 🥷
