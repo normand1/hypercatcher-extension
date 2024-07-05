@@ -1,5 +1,6 @@
 import { Podcast, PodcastChapter } from "../models/podcastCreateModels";
 import React, {useState, useEffect} from "react";
+import ChapterStopwatch from "./chapterStopwatch";
 
 interface ChaptersListProps {
     podcasts: Podcast[];
@@ -15,11 +16,12 @@ export const ChaptersList: React.FC<ChaptersListProps> = ({ podcasts, onBack, se
     const [thisCurrentPodcastId, setThisCurrentPodcastId] = useState<string | null>(null);
     const [thisCurrentEpisodeId, setThisCurrentEpisodeId] = useState<string | null>(null);
     const [autoChapterMode, setAutoChapterMode] = useState(false);
+    const [lastChapterStartTime, setLastChapterStartTime] = useState<number>(0);
 
 
     useEffect(() => {
         chrome.storage.sync.get(['currentPodcastId', 'currentEpisodeId', 'autoChapterMode'], (result) => {
-            console.log('currentPodcastId', result.currentPodcastId);
+            console.log('Initial storage state:', result);
             if (result.currentPodcastId) {
                 setThisCurrentPodcastId(result.currentPodcastId);
             }
@@ -30,8 +32,20 @@ export const ChaptersList: React.FC<ChaptersListProps> = ({ podcasts, onBack, se
             if (typeof result.autoChapterMode === 'boolean') { 
                 setAutoChapterMode(result.autoChapterMode);
             }
-        });
-    }, []);
+            // Check if the current episode has chapters
+            const currentEpisode = podcasts
+                .find(podcast => podcast.id === result.currentPodcastId)
+                ?.episodes.find(episode => episode.id === result.currentEpisodeId);
+
+            if (currentEpisode && (!currentEpisode.chapters || currentEpisode.chapters.length === 0)) {
+                // Reset the stopwatch if there are no chapters
+                chrome.storage.sync.set({ 
+                currentStopwatchTime: 0,
+                recordingStartTime: Math.round(Date.now() / 1000)
+                });
+            }
+            });
+        }, [podcasts]);
     
 
     
@@ -43,13 +57,43 @@ export const ChaptersList: React.FC<ChaptersListProps> = ({ podcasts, onBack, se
         setIsAddingNew(false);
     };
 
+    const getLastChapterStartTime = (podcasts: Podcast[], thisCurrentPodcastId: string | null, thisCurrentEpisodeId: string | null): number => {
+        const selectedChapter = podcasts.find(podcast => podcast.id === thisCurrentPodcastId)
+          ?.episodes.find(episode => episode.id === thisCurrentEpisodeId)
+          ?.chapters.reduce((maxChapter, currentChapter) => 
+            currentChapter.start > maxChapter.start ? currentChapter : maxChapter
+          , { start: -Infinity } as PodcastChapter);
+      
+        return selectedChapter?.start ?? 0;
+    };
+
     const toggleAutoChapterMode = () => {
         const newModeState = !autoChapterMode;
         setAutoChapterMode(newModeState);
-        console.log('newModeState', newModeState);
-        chrome.storage.sync.set({ autoChapterMode: newModeState });
-      };      
-    
+        
+        console.log('Toggling autoChapterMode to:', newModeState);
+        
+        chrome.storage.sync.get(['currentStopwatchTime'], (result) => {
+          console.log('Current storage state before toggle:', result);
+          const currentTime = result.currentStopwatchTime || 0;
+          
+          const newState = { 
+            autoChapterMode: newModeState,
+            recordingStartTime: Math.round(Date.now() / 1000),
+            currentStopwatchTime: currentTime // Maintain the current time
+          };
+          
+          console.log('Setting new state:', newState);
+          
+          chrome.storage.sync.set(newState, () => {
+            console.log('New state set in storage');
+            chrome.storage.sync.get(null, (allData) => {
+              console.log('All storage data after toggle:', allData);
+            });
+          });
+        });
+      };
+          
     const selectChapterForEditing = (chapterId: string) => {
         const selectedChapter = podcasts.find(podcast => podcast.id === thisCurrentPodcastId)
                                         ?.episodes.find(episode => episode.id === thisCurrentEpisodeId)
@@ -254,6 +298,7 @@ export const ChaptersList: React.FC<ChaptersListProps> = ({ podcasts, onBack, se
                 <>
                     <button className="back-button" onClick={onBack}>&#8592; Back</button>
                     <h3>Chapters</h3>
+                    <ChapterStopwatch autoChapterMode={autoChapterMode} />
                     <div className="podcasts-list-container">
                         <button className="add-item-btn" onClick={handlePlusButtonClick}>+</button>
                         <button className="export-btn" onClick={handleExportChapters}>Export Chapters</button>

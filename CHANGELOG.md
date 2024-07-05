@@ -35,3 +35,7 @@ Summary
 ## 0.0.4 [2023.12.01]
 
 - bug: Another start time bug fix
+
+## 0.0.5 [2023.12.02]
+
+- bug: url and image link fixes
