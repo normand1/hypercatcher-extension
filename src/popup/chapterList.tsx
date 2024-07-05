@@ -1,26 +1,67 @@
+import React, { useState, useEffect } from "react";
 import { Podcast, PodcastChapter } from "../models/podcastCreateModels";
-import React, {useState, useEffect} from "react";
 import ChapterStopwatch from "./chapterStopwatch";
 
 interface ChaptersListProps {
     podcasts: Podcast[];
-    setPodcasts: (React.Dispatch<React.SetStateAction<Podcast[]>>);
+    setPodcasts: React.Dispatch<React.SetStateAction<Podcast[]>>;
     onBack: () => void;
 }
 
-export const ChaptersList: React.FC<ChaptersListProps> = ({ podcasts, onBack, setPodcasts }) => {
+interface CustomDialogProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSaveJson: () => void;
+    onCopyDescription: () => void;
+}
 
+const CustomDialog: React.FC<CustomDialogProps> = ({ isOpen, onClose, onSaveJson, onCopyDescription }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+        }}>
+            <div style={{
+                backgroundColor: 'var(--background-color)',
+                padding: '20px',
+                borderRadius: '10px',
+                maxWidth: '80%',
+                color: 'var(--hc-orange)',
+                border: '1px solid var(--hc-orange)',
+            }}>
+                <h3 style={{ marginTop: '0.5em', textTransform: 'uppercase', fontSize: '1.5rem', fontWeight: 200, lineHeight: '1.2rem' }}>
+                    Export Chapters
+                </h3>
+                <p>Choose how you want to export the chapters:</p>
+                <button onClick={onSaveJson} className="calc" style={{ marginRight: '10px' }}>Save as JSON</button>
+                <button onClick={onCopyDescription} className="calc" style={{ marginRight: '10px' }}>Copy as Podcast Description</button>
+                <button onClick={onClose} className="calc">Cancel</button>
+            </div>
+        </div>
+    );
+};
+
+export const ChaptersList: React.FC<ChaptersListProps> = ({ podcasts, onBack, setPodcasts }) => {
     const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
     const [newChapter, setNewChapter] = useState<PodcastChapter>({ id: '', title: '', start: 0, url: '', img: '' });
     const [isAddingNew, setIsAddingNew] = useState<boolean>(false);
     const [thisCurrentPodcastId, setThisCurrentPodcastId] = useState<string | null>(null);
     const [thisCurrentEpisodeId, setThisCurrentEpisodeId] = useState<string | null>(null);
     const [autoChapterMode, setAutoChapterMode] = useState(false);
-    const [lastChapterStartTime, setLastChapterStartTime] = useState<number>(0);
-
+    const [showExportDialog, setShowExportDialog] = useState(false);
 
     useEffect(() => {
-        chrome.storage.sync.get(['currentPodcastId', 'currentEpisodeId', 'autoChapterMode'], (result) => {
+        chrome.storage.sync.get(['currentPodcastId', 'currentEpisodeId', 'autoChapterMode', 'currentStopwatchTime', 'recordingStartTime'], (result) => {
             console.log('Initial storage state:', result);
             if (result.currentPodcastId) {
                 setThisCurrentPodcastId(result.currentPodcastId);
@@ -28,27 +69,25 @@ export const ChaptersList: React.FC<ChaptersListProps> = ({ podcasts, onBack, se
             if (result.currentEpisodeId) {
                 setThisCurrentEpisodeId(result.currentEpisodeId);
             }
-            // Correctly set autoChapterMode based on the stored value
             if (typeof result.autoChapterMode === 'boolean') { 
                 setAutoChapterMode(result.autoChapterMode);
             }
-            // Check if the current episode has chapters
+            
             const currentEpisode = podcasts
                 .find(podcast => podcast.id === result.currentPodcastId)
                 ?.episodes.find(episode => episode.id === result.currentEpisodeId);
 
             if (currentEpisode && (!currentEpisode.chapters || currentEpisode.chapters.length === 0)) {
-                // Reset the stopwatch if there are no chapters
-                chrome.storage.sync.set({ 
-                currentStopwatchTime: 0,
-                recordingStartTime: Math.round(Date.now() / 1000)
-                });
+                if (typeof result.currentStopwatchTime === 'undefined' || typeof result.recordingStartTime === 'undefined') {
+                    chrome.storage.sync.set({ 
+                        currentStopwatchTime: 0,
+                        recordingStartTime: Math.round(Date.now() / 1000)
+                    });
+                }
             }
-            });
-        }, [podcasts]);
-    
+        });
+    }, [podcasts]);
 
-    
     const handlePlusButtonClick = () => {
         setIsAddingNew(true);
     };
@@ -73,27 +112,14 @@ export const ChaptersList: React.FC<ChaptersListProps> = ({ podcasts, onBack, se
         
         console.log('Toggling autoChapterMode to:', newModeState);
         
-        chrome.storage.sync.get(['currentStopwatchTime'], (result) => {
-          console.log('Current storage state before toggle:', result);
-          const currentTime = result.currentStopwatchTime || 0;
-          
-          const newState = { 
-            autoChapterMode: newModeState,
-            recordingStartTime: Math.round(Date.now() / 1000),
-            currentStopwatchTime: currentTime // Maintain the current time
-          };
-          
-          console.log('Setting new state:', newState);
-          
-          chrome.storage.sync.set(newState, () => {
-            console.log('New state set in storage');
-            chrome.storage.sync.get(null, (allData) => {
-              console.log('All storage data after toggle:', allData);
-            });
+        chrome.storage.sync.set({ autoChapterMode: newModeState }, () => {
+          console.log('New autoChapterMode state set in storage');
+          chrome.storage.sync.get(null, (allData) => {
+            console.log('All storage data after toggle:', allData);
           });
         });
-      };
-          
+    };
+                              
     const selectChapterForEditing = (chapterId: string) => {
         const selectedChapter = podcasts.find(podcast => podcast.id === thisCurrentPodcastId)
                                         ?.episodes.find(episode => episode.id === thisCurrentEpisodeId)
@@ -102,44 +128,68 @@ export const ChaptersList: React.FC<ChaptersListProps> = ({ podcasts, onBack, se
         if (selectedChapter) {
             setEditingChapterId(chapterId);
             setNewChapter({...selectedChapter});
-            setIsAddingNew(true); // Reuse this state to show input fields for editing
+            setIsAddingNew(true);
         }
     };
 
     const handleExportChapters = () => {
+        setShowExportDialog(true);
+    };
+
+    const exportAsJson = () => {
         const currentPodcast = podcasts.find(podcast => podcast.id === thisCurrentPodcastId);
         const currentEpisode = currentPodcast?.episodes.find(episode => episode.id === thisCurrentEpisodeId);
         if (!currentEpisode) {
             alert('No episode selected or no chapters to export.');
             return;
         }
-    
+
         const exportData = {
-            chapters: currentEpisode.chapters.map(chapter => {
-                let chapterData: any = { 
-                    title: chapter?.title ?? '', 
-                    startTime: chapter?.start
-                };
-        
-                // Conditionally add 'url' and 'img' if they are not null
-                if (chapter?.url) chapterData.url = chapter?.url;
-                if (chapter?.img) chapterData.img = chapter?.img;
-        
-                return chapterData;
-            }),
+            chapters: currentEpisode.chapters.map(chapter => ({
+                title: chapter?.title ?? '',
+                startTime: chapter?.start,
+                ...(chapter?.url && { url: chapter.url }),
+                ...(chapter?.img && { img: chapter.img })
+            })),
             version: "1.0.0"
         };
-        
-            
+
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
         downloadAnchorNode.setAttribute("download", `chapters-${thisCurrentEpisodeId}.json`);
-        document.body.appendChild(downloadAnchorNode); // Required for Firefox
+        document.body.appendChild(downloadAnchorNode);
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
+        setShowExportDialog(false);
     };
 
+    const copyAsPodcastDescription = () => {
+        const currentPodcast = podcasts.find(podcast => podcast.id === thisCurrentPodcastId);
+        const currentEpisode = currentPodcast?.episodes.find(episode => episode.id === thisCurrentEpisodeId);
+        if (!currentEpisode) {
+            alert('No episode selected or no chapters to export.');
+            return;
+        }
+
+        const chapterDescriptions = currentEpisode.chapters.map(chapter => {
+            const time = new Date(chapter?.start * 1000).toISOString().substr(11, 8);
+            let description = `<p>${time} ${chapter?.title}`;
+            if (chapter?.url) {
+                description += ` <a href="${chapter.url}">${chapter.url}</a>`;
+            }
+            description += '</p>';
+            return description;
+        }).join('\n');
+
+        navigator.clipboard.writeText(chapterDescriptions).then(() => {
+            alert('Chapters copied to clipboard in podcast description format!');
+        }, (err) => {
+            console.error('Could not copy text: ', err);
+        });
+        setShowExportDialog(false);
+    };
+    
     const deleteChapter = () => {
         if (!editingChapterId) return;
     
@@ -166,15 +216,12 @@ export const ChaptersList: React.FC<ChaptersListProps> = ({ podcasts, onBack, se
             console.log('Chapter deleted from Chrome Storage.');
         });
     
-        setIsAddingNew(false); // Close the editing form
-        setEditingChapterId(null); // Reset editing chapter id
+        setIsAddingNew(false);
+        setEditingChapterId(null);
     };
-    
 
     const saveNewItem = () => {
-
         if (editingChapterId) {
-            // Logic to update an existing chapter
             const updatedPodcasts = podcasts.map(podcast => {
                 if (podcast.id === thisCurrentPodcastId) {
                     return {
@@ -203,7 +250,6 @@ export const ChaptersList: React.FC<ChaptersListProps> = ({ podcasts, onBack, se
             setNewChapter({ id: '', title: '', start: 0, url: '', img: '' });
             setIsAddingNew(false);
         } else if (thisCurrentEpisodeId && newChapter.title.trim() !== '') {
-            // Logic to save a new chapter
             const chapterToAdd = {
                 ...newChapter,
                 id: Date.now().toString()
@@ -234,11 +280,17 @@ export const ChaptersList: React.FC<ChaptersListProps> = ({ podcasts, onBack, se
 
     return (
         <div>
+            <CustomDialog 
+                isOpen={showExportDialog}
+                onClose={() => setShowExportDialog(false)}
+                onSaveJson={exportAsJson}
+                onCopyDescription={copyAsPodcastDescription}
+            />
             {isAddingNew ? (
                 <form 
                     onSubmit={(e) => {
-                        e.preventDefault(); // Prevents the default form submission behavior
-                        saveNewItem(); // Calls your saveNewItem function
+                        e.preventDefault();
+                        saveNewItem();
                     }}
                     className="save-podcast-btn-container"
                 >
@@ -248,7 +300,7 @@ export const ChaptersList: React.FC<ChaptersListProps> = ({ podcasts, onBack, se
                         value={newChapter.title}
                         onChange={(e) => setNewChapter({...newChapter, title: e.target.value})}
                         placeholder="Enter chapter title"
-                        autoFocus  // Automatically focuses the input field
+                        autoFocus
                     />
                     <input
                         type="number"
@@ -265,20 +317,20 @@ export const ChaptersList: React.FC<ChaptersListProps> = ({ podcasts, onBack, se
                         placeholder="Enter chapter URL"
                     />
                     <input
-                        type="text"  // Changed from 'img' to 'text' for proper input type
+                        type="text"
                         className="new-podcast-input"
                         value={newChapter.img}
                         onChange={(e) => setNewChapter({...newChapter, img: e.target.value})}
                         placeholder="Enter Image URL"
                     />
                     <button 
-                        type="submit"  // Indicates that this button submits the form
+                        type="submit"
                         className="save-podcast-btn"
                     >
                         Save
                     </button>
                     <button 
-                        type="button"  // This ensures the button doesn't submit the form
+                        type="button"
                         className="save-podcast-btn"
                         onClick={handleCancelButtonClick}
                     >
@@ -321,3 +373,5 @@ export const ChaptersList: React.FC<ChaptersListProps> = ({ podcasts, onBack, se
         </div>
     );
 };
+
+export default ChaptersList;

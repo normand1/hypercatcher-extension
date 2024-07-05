@@ -8,35 +8,18 @@ const ChapterStopwatch: React.FC<ChapterStopwatchProps> = ({ autoChapterMode }) 
   const [currentTime, setCurrentTime] = useState(0);
 
   useEffect(() => {
-    let interval: number | undefined;
-
-    function updateTime() {
-      if (autoChapterMode) {
-        chrome.storage.sync.get(['currentStopwatchTime'], (result) => {
-          console.log('ChapterStopwatch - current storage state:', result);
-          setCurrentTime(result.currentStopwatchTime || 0);
-        });
-      }
-    }
-
-    if (autoChapterMode) {
-      updateTime(); // Update immediately when autoChapterMode is enabled
-      interval = window.setInterval(updateTime, 1000); // Update every second
-    } else {
-      // Update one last time when autoChapterMode is disabled
+    const updateDisplayTime = () => {
       chrome.storage.sync.get(['currentStopwatchTime'], (result) => {
         setCurrentTime(result.currentStopwatchTime || 0);
       });
-      // Clear interval if autoChapterMode is disabled
-      if (interval) {
-        clearInterval(interval);
-      }
-    }
-
-    return () => {
-      if (interval) window.clearInterval(interval);
     };
-  }, [autoChapterMode]);
+
+    updateDisplayTime(); // Update immediately
+
+    const interval = setInterval(updateDisplayTime, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const formatTime = (seconds: number) => {
     if (isNaN(seconds)) return "00:00:00";
@@ -46,8 +29,19 @@ const ChapterStopwatch: React.FC<ChapterStopwatchProps> = ({ autoChapterMode }) 
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  const handleStopwatchClick = () => {
+    if (window.confirm("Do you want to reset the stopwatch to zero?")) {
+      chrome.storage.sync.set({ 
+        currentStopwatchTime: 0,
+      }, () => {
+        console.log('Stopwatch reset to zero');
+        setCurrentTime(0);
+      });
+    }
+  };
+
   return (
-    <div className="chapter-stopwatch">
+    <div className="chapter-stopwatch" onClick={handleStopwatchClick}>
       Current Time: {formatTime(currentTime)}
     </div>
   );

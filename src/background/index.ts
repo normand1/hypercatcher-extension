@@ -1,18 +1,22 @@
 console.log('hypercatcher extension background script is running')
 import { Episode, Podcast, PodcastChapter } from '../models/podcastCreateModels';
+
 let autoChapterMode = false;
 let ignoreUrlsList = ['chrome://newtab/', 'chrome://extensions/', 'chrome://settings/', 'chrome://bookmarks/', 'chrome://downloads/'];
 let stopwatchInterval: number | undefined;
 let currentStopwatchTime: number = 0;
+let lastUpdateTime: number = Date.now();
 
 function updateStopwatch() {
-  chrome.storage.sync.get(['autoChapterMode', 'recordingStartTime', 'currentStopwatchTime'], (result) => {
+  chrome.storage.sync.get(['autoChapterMode', 'currentStopwatchTime'], (result) => {
     console.log('updateStopwatch - current storage state:', result);
     if (result.autoChapterMode) {
-      const now = Math.round(Date.now() / 1000);
-      currentStopwatchTime = (result.currentStopwatchTime || 0) + (now - (result.recordingStartTime || now));
+      const now = Date.now();
+      const elapsedSeconds = Math.floor((now - lastUpdateTime) / 1000);
+      currentStopwatchTime = (result.currentStopwatchTime || 0) + elapsedSeconds;
       console.log('updateStopwatch - new currentStopwatchTime:', currentStopwatchTime);
-      chrome.storage.sync.set({ currentStopwatchTime, recordingStartTime: now });
+      chrome.storage.sync.set({ currentStopwatchTime });
+      lastUpdateTime = now;
     }
   });
 }
@@ -31,6 +35,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
       
       if (autoChapterMode) {
         console.log('Starting stopwatch');
+        lastUpdateTime = Date.now();
         if (!stopwatchInterval) {
           updateStopwatch(); // Update immediately when starting
           stopwatchInterval = self.setInterval(updateStopwatch, 1000);
@@ -46,10 +51,6 @@ chrome.storage.onChanged.addListener((changes, area) => {
     
     if (autoChapterMode && changes.currentStopwatchTime) {
       console.log('currentStopwatchTime updated:', changes.currentStopwatchTime.newValue);
-    }
-    
-    if (autoChapterMode && changes.recordingStartTime) {
-      console.log('recordingStartTime updated:', changes.recordingStartTime.newValue);
     }
   }
 });
@@ -83,7 +84,6 @@ chrome.runtime.onInstalled.addListener(() => {
     title: "Chapter Image from Selection",
     contexts: ["image"] // This will make it appear only when an image is right-clicked
   });
-
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -175,26 +175,24 @@ async function addNewChapter(selectedTextOrUrl: string, to: string = 'title') {
         }
     });
 
-    console.log('sent notificaiton');
+    console.log('sent notification');
     console.log('updatedPodcasts', JSON.stringify(updatedPodcasts));
     chrome.storage.sync.set({ podcasts: updatedPodcasts }, () => {
       console.log('Podcasts with new chapter updated in Chrome Storage in background.');
     });
   }
 
-
 function initializeStopwatch() {
-  chrome.storage.sync.get(['autoChapterMode', 'recordingStartTime'], (result) => {
+  chrome.storage.sync.get(['autoChapterMode', 'currentStopwatchTime'], (result) => {
     if (result.autoChapterMode) {
-      updateStopwatch();
+      lastUpdateTime = Date.now();
+      currentStopwatchTime = result.currentStopwatchTime || 0;
       if (!stopwatchInterval) {
-        stopwatchInterval = window.setInterval(updateStopwatch, 1000);
+        stopwatchInterval = self.setInterval(updateStopwatch, 1000);
       }
     }
   });
 }
-  
-  // Call initializeStopwatch when the extension starts
-  initializeStopwatch();
-  
-  
+
+// Call initializeStopwatch when the extension starts
+initializeStopwatch();
